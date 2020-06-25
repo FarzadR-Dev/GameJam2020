@@ -1,63 +1,54 @@
-﻿using System;
-using UnityEngine;
-
-[RequireComponent(typeof(Rigidbody))] // Always needs a rigid body
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine; 
+using UnityEngine.AI;
+ 
+[RequireComponent(typeof(NavMeshAgent))]
 public class PlayerMotor : MonoBehaviour
 {
-  public Vector3 velocity;
-  public Vector3 rotation;
-  public Vector3 cameraRotation;
-  public Rigidbody rb;
-  public Camera cam;
-
-  public Animator animator;
-  private static readonly int Running = Animator.StringToHash("Running");
-
-  void Start()
-  {
-    rb = GetComponent<Rigidbody>();
-  }
-
-  public void Movement(Vector3 vel)
-  {
-    velocity = vel;
-  }
-
-  void PerformMovement()
-  {
-    if (velocity != Vector3.zero)
+    public NavMeshAgent agent;
+    public Transform target; 
+    
+    
+    void Start()
     {
-      animator.SetBool(Running, true);
-      rb.MovePosition(rb.position + velocity * Time.fixedDeltaTime); // Moves player
+        agent.GetComponent<NavMeshAgent>();
     }
-    else if (velocity == Vector3.zero)
+
+    void Update()
     {
-      animator.SetBool(Running, false);
-    }
-  }
-
-  public void Rotation(Vector3 rot)
-  {
-    rotation = rot;
-  }
-
-  public void CameraRotation(Vector3 camRot)
-  {
-    cameraRotation = camRot;
-  }
-
-  void PerformRotation()
-  {
-    rb.MoveRotation(rb.rotation * Quaternion.Euler(rotation));
-    if (cam != null)
-    {
-      cam.transform.Rotate(-cameraRotation);
+        if (target != null)
+        {
+            agent.SetDestination(target.position);
+            FaceTarget();
+        }
     }
     
-  }
-  private void FixedUpdate()
-  {
-    PerformMovement();
-    PerformRotation();
-  }
-}
+
+    public void MoveToPoint(Vector3 point)
+    {
+        agent.SetDestination(point);
+    }
+
+    public void FollowTarget(Interactables newTarget)
+    {
+        agent.stoppingDistance = newTarget.radius * .8f;
+        agent.updateRotation = false; 
+        target = newTarget.interactionTransfrom;
+    }
+
+    public void StopFollowingTarget()
+    {
+        agent.stoppingDistance = 0f; 
+        agent.updateRotation = false;
+        target = null;
+    }
+
+    void FaceTarget()
+    {
+        Vector3 direction = (target.position - transform.position).normalized;
+        Quaternion lookRotation = Quaternion.LookRotation(new Vector3(direction.x, 0f, direction.z));
+        transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 5f);
+    }
+} 
+
